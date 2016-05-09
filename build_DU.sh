@@ -23,13 +23,25 @@ ban()
     echo ""
 }
 
+nthreads()
+{
+    echo -e -n $CM"Enter numbers of tasks used to compile, enter 'all' to use all threads: "$CRT
+    read ncore
+    if [ "$(echo $ncore | grep "^[ [:digit:] ]*$")" ] || [ "$ncore" = "all" ]; then
+        clear
+    else
+        echo "Wrong selection !"
+        nthreads
+    fi
+} 
+
 ban
-echo -e -n $CB"Repo sync O/N :"$CRT
+echo -e -n $CB"Do you want to perform a repo sync (o/n) ? : "$CRT
 read rsync 
 clear
 
 ban
-echo -e $CG"Choose clean level :"$CRT
+echo -e $CG"Choose the clean level:"$CRT
 select cbuild in "make clobber" "make installclean" "no clean"; do
     case $cbuild in
         "make clobber"|"make installclean"|"no clean") break;;
@@ -39,7 +51,7 @@ done
 clear
 
 ban
-echo -e -n $CM"Build DU now O/N :"$CRT
+echo -e -n $CM"Do you want to build DU now (o/n) ? : "$CRT
 read bnow
 clear
 
@@ -102,14 +114,21 @@ if [ $? == 0 -a \( "$rsync" = "o" -o "$rsync" = "O" \) ]; then
     echo ""
     cat ~/repo_log.log
 elif [ "$bnow" = "o" ] || [ "$bnow" = "O" ]; then
+    . build/envsetup.sh >/dev/null
+    lunch
+    nthreads
     echo ""
     echo -e $CY
-    echo -e "****************************"
-    echo -e "*"$CRT $CM"Building DU for Shamu..."$CRT $CY"*" 
-    echo -e "****************************"
+    echo -e "**********************************"
+    echo -e "*"$CRT $CM"Building DU for your device..."$CRT $CY"*" 
+    echo -e "**********************************"
     echo -e $CRT
     echo ""
-    . build/envsetup.sh && lunch du_shamu-userdebug && time mka bacon
+    if [ "$ncore" = "all" ]; then
+        time mka bacon
+    else
+        time make -j$ncore
+    fi
 fi
 
 rm ~/repo_log.log
